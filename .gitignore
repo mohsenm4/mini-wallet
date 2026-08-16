@@ -1,5 +1,6 @@
 # Binaries
-mini-wallet
+/wallet
+/mini-wallet
 *.exe
 *.dll
 *.so
