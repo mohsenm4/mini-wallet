@@ -1,8 +1,10 @@
 package mnemonic
 
 import (
+	"crypto/pbkdf2"
 	"crypto/rand"
 	"crypto/sha256"
+	"crypto/sha512"
 	"fmt"
 	"sort"
 	"strconv"
@@ -108,4 +110,12 @@ func ValidateMnemonic(m string) error {
 	}
 
 	return nil
+}
+
+func ToSeed(mnemonic, passphrase string) []byte {
+	pb, err := pbkdf2.Key(sha512.New, mnemonic, []byte("mnemonic"+passphrase), 2048, 64)
+	if err != nil {
+		panic(err)
+	}
+	return pb
 }
