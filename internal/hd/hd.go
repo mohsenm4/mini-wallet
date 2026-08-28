@@ -42,19 +42,19 @@ func NewMasterKey(seed []byte) (*PrivateKey, error) {
 
 func (k *PrivateKey) Child(i uint32) (*PrivateKey, error) {
 
-	if i >= HardenedOffset {
-		return nil, errors.New("invalid child index: hardened derivation not supported")
-	}
-
 	pvk, err := crypto.ToECDSA(k.Key[:])
 	if err != nil {
 		return nil, err
 	}
 
-	serP := crypto.CompressPubkey(&pvk.PublicKey)
-
 	data := make([]byte, 37)
-	copy(data[:33], serP)
+	if i >= HardenedOffset {
+		data[0] = 0x00
+		copy(data[1:33], k.Key[:])
+	} else {
+		serP := crypto.CompressPubkey(&pvk.PublicKey)
+		copy(data[:33], serP)
+	}
 	binary.BigEndian.PutUint32(data[33:], i)
 
 	h := hmac.New(sha512.New, k.ChainCode[:])

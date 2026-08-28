@@ -104,3 +104,37 @@ func TestChildChain(t *testing.T) {
 		t.Errorf("m/0/1 chain code mismatch\ngot:  %s\nwant: %s", chainCodeHex, expectedChainCodeHex)
 	}
 }
+
+func TestChildHardened(t *testing.T) {
+	seed, err := hex.DecodeString(
+		"000102030405060708090a0b0c0d0e0f",
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	masterKey, err := NewMasterKey(seed)
+	if err != nil {
+		t.Fatalf("NewMasterKey returned unexpected error: %v", err)
+	}
+
+	childIndex := uint32(HardenedOffset + 0) // Hardened child index
+	childKey, err := masterKey.Child(childIndex)
+	if err != nil {
+		t.Fatalf("Child returned unexpected error: %v", err)
+	}
+
+	expectedChildKeyHex := "edb2e14f9ee77d26dd93b4ecede8d16ed408ce149b6cd80b0715a2d911a0afea"
+	expectedChildChainCodeHex := "47fdacbd0f1097043b78c63c20c34ef4ed9a111d980047ad16282c7ae6236141"
+
+	childKeyHex := fmt.Sprintf("%x", childKey.Key)
+	childChainCodeHex := fmt.Sprintf("%x", childKey.ChainCode)
+
+	if childKeyHex != expectedChildKeyHex {
+		t.Errorf("Hardened child key mismatch\ngot:  %s\nwant: %s", childKeyHex, expectedChildKeyHex)
+	}
+
+	if childChainCodeHex != expectedChildChainCodeHex {
+		t.Errorf("Hardened child chain code mismatch\ngot:  %s\nwant: %s", childChainCodeHex, expectedChildChainCodeHex)
+	}
+}
