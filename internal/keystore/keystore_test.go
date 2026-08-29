@@ -2,6 +2,7 @@ package keystore
 
 import (
 	"bytes"
+	"crypto/rand"
 	"testing"
 )
 
@@ -60,4 +61,14 @@ func TestKeystoreV3(t *testing.T) {
 	if keystore.Version != 3 {
 		t.Fatalf("expected version 3, got %d", keystore.Version)
 	}
+}
+
+func TestEncrypt_Smoke(t *testing.T) {
+	var k [32]byte
+	rand.Read(k[:])
+	ks, err := Encrypt(k, "pw")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("%+v", ks)
 }
