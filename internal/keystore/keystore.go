@@ -4,7 +4,9 @@ import (
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
+	"crypto/subtle"
 	"encoding/hex"
+	"errors"
 	"fmt"
 
 	"github.com/ethereum/go-ethereum/crypto"
@@ -123,4 +125,56 @@ func Encrypt(privKey [32]byte, password string) (KeystoreV3, error) {
 		},
 	}, nil
 
+}
+
+func Decrypt(ks KeystoreV3, password string) ([32]byte, error) {
+
+	salt, err := hex.DecodeString(ks.Crypto.KDFParams.Salt)
+	if err != nil {
+		return [32]byte{}, fmt.Errorf("invalid salt: %w", err)
+	}
+
+	ciphertext, err := hex.DecodeString(ks.Crypto.CipherText)
+	if err != nil {
+		return [32]byte{}, fmt.Errorf("invalid ciphertext: %w", err)
+	}
+
+	iv, err := hex.DecodeString(ks.Crypto.CipherParams.IV)
+	if err != nil {
+		return [32]byte{}, fmt.Errorf("invalid iv: %w", err)
+	}
+
+	expectedMAC, err := hex.DecodeString(ks.Crypto.MAC)
+	if err != nil {
+		return [32]byte{}, fmt.Errorf("invalid mac: %w", err)
+	}
+
+	kp := ks.Crypto.KDFParams
+	derivedKey, err := scrypt.Key([]byte(password), salt, kp.N, kp.R, kp.P, kp.DKLen)
+	if err != nil {
+		return [32]byte{}, err
+	}
+
+	encKey := derivedKey[:16]
+	macKey := derivedKey[16:32]
+
+	h := sha3.NewLegacyKeccak256()
+	h.Write(macKey)     // ← macKey
+	h.Write(ciphertext) // ← ciphertext
+	computedMAC := h.Sum(nil)
+
+	if subtle.ConstantTimeCompare(computedMAC, expectedMAC) != 1 {
+		return [32]byte{}, errors.New("invalid password (mac mismatch)")
+	}
+
+	block, err := aes.NewCipher(encKey)
+	if err != nil {
+		return [32]byte{}, err
+	}
+	stream := cipher.NewCTR(block, iv)
+
+	var privKey [32]byte
+	stream.XORKeyStream(privKey[:], ciphertext)
+
+	return privKey, nil
 }
