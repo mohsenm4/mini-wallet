@@ -3,6 +3,8 @@ package keystore
 import (
 	"bytes"
 	"crypto/rand"
+	"encoding/hex"
+	"encoding/json"
 	"testing"
 )
 
@@ -102,4 +104,46 @@ func TestDecrypt_WrongPassword(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for wrong password, got nil")
 	}
+}
+
+func TestDecrypt_ReferenceVector(t *testing.T) {
+
+	keystoreJSON := `{
+    "crypto": {
+        "cipher": "aes-128-ctr",
+        "cipherparams": {"iv": "83dbcc02d8ccb40e466191a123791e0e"},
+        "ciphertext": "d172bf743a674da9cdad04534d56926ef8358534d458fffccd4e6ad2fbde479c",
+        "kdf": "scrypt",
+        "kdfparams": {
+            "dklen": 32,
+            "n": 262144,
+            "p": 8,
+            "r": 1,
+            "salt": "ab0c7876052600dd703518d6fc3fe8984592145b591fc8fb5c6d43190334ba19"
+        },
+        "mac": "2103ac29920d71da29f15d75b4a16dbe95cfd7ff8faea1056c33131d846e3097"
+    },
+    "id": "3198bc9c-6672-5ab3-d995-4942343ae5b6",
+    "version": 3
+}`
+
+	password := "testpassword"
+	expectedKeyHex := "7a28b5ba57c53603b0b07b56bba752f7784bf506fa95edc395f5cf6c7514fe9d"
+
+	var ks KeystoreV3
+	if err := json.Unmarshal([]byte(keystoreJSON), &ks); err != nil {
+		t.Fatalf("failed to unmarshal keystore JSON: %v", err)
+	}
+
+	// Replace "correct-password" with the actual password for the reference vector.
+	recovered, err := Decrypt(ks, password)
+	if err != nil {
+		t.Fatalf("Decrypt failed: %v", err)
+	}
+
+	expected, _ := hex.DecodeString(expectedKeyHex)
+	if !bytes.Equal(recovered[:], expected) {
+		t.Fatalf("mismatch: got %x, want %s", recovered, expectedKeyHex)
+	}
+
 }
