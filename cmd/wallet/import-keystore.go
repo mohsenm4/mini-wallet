@@ -21,9 +21,9 @@ func init() {
 func runImportKeystore(cmd *cobra.Command, args []string) error {
 	keystoreFile := args[0]
 
-	password := os.Getenv("WALLET_PASSWORD")
-	if password == "" {
-		return fmt.Errorf("WALLET_PASSWORD environment variable is not set")
+	password, err := readPassword()
+	if err != nil {
+		return err
 	}
 
 	dataJs, err := os.ReadFile(keystoreFile)

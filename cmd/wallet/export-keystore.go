@@ -30,9 +30,9 @@ func runExportKeystore(cmd *cobra.Command, args []string) error {
 	}
 	passphrase := os.Getenv("WALLET_PASSPHRASE")
 
-	password := os.Getenv("WALLET_PASSWORD")
-	if password == "" {
-		return fmt.Errorf("WALLET_PASSWORD environment variable is not set")
+	password, err := readPassword()
+	if err != nil {
+		return err
 	}
 
 	path := fmt.Sprintf("m/44'/60'/0'/0/%d", exportIndex)
