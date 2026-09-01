@@ -29,5 +29,6 @@ Thumbs.db
 .env.local
 *.pem
 *.key
+*.keystore.json
 
 scratch/
