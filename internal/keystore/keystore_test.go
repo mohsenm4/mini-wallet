@@ -72,3 +72,34 @@ func TestEncrypt_Smoke(t *testing.T) {
 	}
 	t.Logf("%+v", ks)
 }
+
+func TestEncryptDecrypt_Roundtrip(t *testing.T) {
+	var original [32]byte
+	rand.Read(original[:])
+
+	ks, err := Encrypt(original, "correct-password")
+	if err != nil {
+		t.Fatalf("Encrypt failed: %v", err)
+	}
+
+	recovered, err := Decrypt(ks, "correct-password")
+	if err != nil {
+		t.Fatalf("Decrypt failed: %v", err)
+	}
+
+	if original != recovered {
+		t.Fatalf("mismatch: got %x, want %x", recovered, original)
+	}
+}
+
+func TestDecrypt_WrongPassword(t *testing.T) {
+	var k [32]byte
+	rand.Read(k[:])
+
+	ks, _ := Encrypt(k, "correct")
+	_, err := Decrypt(ks, "WRONG")
+
+	if err == nil {
+		t.Fatal("expected error for wrong password, got nil")
+	}
+}
