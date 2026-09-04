@@ -23,14 +23,14 @@ func NewMasterKey(seed []byte) (*PrivateKey, error) {
 
 	sum := h.Sum(nil)
 
-	il := new(big.Int).SetBytes(sum[:32])
+	left := new(big.Int).SetBytes(sum[:32])
 	curveN := crypto.S256().Params().N // secp256k1 order
 
-	if il.Sign() == 0 {
-		return nil, errors.New("invalid master key: IL is zero")
+	if left.Sign() == 0 {
+		return nil, errors.New("invalid master key: left half is zero")
 	}
-	if il.Cmp(curveN) >= 0 {
-		return nil, errors.New("invalid master key: IL >= n")
+	if left.Cmp(curveN) >= 0 {
+		return nil, errors.New("invalid master key: left half >= curve order")
 	}
 
 	var key PrivateKey
@@ -61,15 +61,15 @@ func (k *PrivateKey) Child(i uint32) (*PrivateKey, error) {
 	_, _ = h.Write(data)
 	sum := h.Sum(nil)
 
-	il := new(big.Int).SetBytes(sum[:32])
-	ir := sum[32:]
+	left := new(big.Int).SetBytes(sum[:32])
+	right := sum[32:]
 	curveN := crypto.S256().Params().N // secp256k1 order
 
-	if il.Cmp(curveN) >= 0 {
-		return nil, errors.New("invalid child key: IL >= n")
+	if left.Cmp(curveN) >= 0 {
+		return nil, errors.New("invalid child key: left half >= curve order")
 	}
 
-	childKey := new(big.Int).Add(il, pvk.D)
+	childKey := new(big.Int).Add(left, pvk.D)
 	childKey.Mod(childKey, curveN)
 
 	if childKey.Sign() == 0 {
@@ -78,7 +78,7 @@ func (k *PrivateKey) Child(i uint32) (*PrivateKey, error) {
 
 	var child PrivateKey
 	childKey.FillBytes(child.Key[:])
-	copy(child.ChainCode[:], ir)
+	copy(child.ChainCode[:], right)
 
 	return &child, nil
 }
