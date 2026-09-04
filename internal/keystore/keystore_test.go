@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"strings"
 	"testing"
 )
 
@@ -103,6 +104,54 @@ func TestDecrypt_WrongPassword(t *testing.T) {
 
 	if err == nil {
 		t.Fatal("expected error for wrong password, got nil")
+	}
+}
+
+func TestEncrypt_EmptyPassword(t *testing.T) {
+	var k [32]byte
+	rand.Read(k[:])
+	if _, err := Encrypt(k[:], "", "0xdeadbeef"); err == nil {
+		t.Fatal("expected error for empty password, got nil")
+	}
+}
+
+func TestEncrypt_EmptySecret(t *testing.T) {
+	if _, err := Encrypt(nil, "pw", "0xdeadbeef"); err == nil {
+		t.Fatal("expected error for empty secret, got nil")
+	}
+}
+
+func TestDecrypt_CorruptFields(t *testing.T) {
+	var k [32]byte
+	rand.Read(k[:])
+	valid, err := Encrypt(k[:], "pw", "0xdeadbeef")
+	if err != nil {
+		t.Fatalf("setup Encrypt failed: %v", err)
+	}
+
+	cases := []struct {
+		name    string
+		mutate  func(*KeystoreV3)
+		wantSub string
+	}{
+		{"bad salt hex", func(ks *KeystoreV3) { ks.Crypto.KDFParams.Salt = "zz" }, "invalid salt"},
+		{"bad ciphertext hex", func(ks *KeystoreV3) { ks.Crypto.CipherText = "zz" }, "invalid ciphertext"},
+		{"bad iv hex", func(ks *KeystoreV3) { ks.Crypto.CipherParams.IV = "zz" }, "invalid iv"},
+		{"bad mac hex", func(ks *KeystoreV3) { ks.Crypto.MAC = "zz" }, "invalid mac"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ks := valid
+			tc.mutate(&ks)
+			_, err := Decrypt(ks, "pw")
+			if err == nil {
+				t.Fatalf("expected error, got nil")
+			}
+			if !strings.Contains(err.Error(), tc.wantSub) {
+				t.Fatalf("error %q does not contain %q", err.Error(), tc.wantSub)
+			}
+		})
 	}
 }
 

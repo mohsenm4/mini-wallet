@@ -59,6 +59,9 @@ func Encrypt(secret []byte, password string, address string) (KeystoreV3, error)
 	if len(secret) == 0 {
 		return KeystoreV3{}, errors.New("empty secret")
 	}
+	if password == "" {
+		return KeystoreV3{}, errors.New("empty password")
+	}
 
 	salt := make([]byte, 32)
 	if _, err := rand.Read(salt); err != nil {
