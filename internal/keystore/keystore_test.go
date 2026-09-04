@@ -68,7 +68,9 @@ func TestKeystoreV3(t *testing.T) {
 
 func TestEncrypt_Smoke(t *testing.T) {
 	var k [32]byte
-	rand.Read(k[:])
+	if _, err := rand.Read(k[:]); err != nil {
+		t.Fatalf("rand.Read: %v", err)
+	}
 	ks, err := Encrypt(k[:], "pw", "0xdeadbeef")
 	if err != nil {
 		t.Fatal(err)
@@ -78,7 +80,9 @@ func TestEncrypt_Smoke(t *testing.T) {
 
 func TestEncryptDecrypt_Roundtrip(t *testing.T) {
 	var original [32]byte
-	rand.Read(original[:])
+	if _, err := rand.Read(original[:]); err != nil {
+		t.Fatalf("rand.Read: %v", err)
+	}
 
 	ks, err := Encrypt(original[:], "correct-password", "0xdeadbeef")
 	if err != nil {
@@ -97,7 +101,9 @@ func TestEncryptDecrypt_Roundtrip(t *testing.T) {
 
 func TestDecrypt_WrongPassword(t *testing.T) {
 	var k [32]byte
-	rand.Read(k[:])
+	if _, err := rand.Read(k[:]); err != nil {
+		t.Fatalf("rand.Read: %v", err)
+	}
 
 	ks, _ := Encrypt(k[:], "correct", "0xdeadbeef")
 	_, err := Decrypt(ks, "WRONG")
@@ -109,7 +115,9 @@ func TestDecrypt_WrongPassword(t *testing.T) {
 
 func TestEncrypt_EmptyPassword(t *testing.T) {
 	var k [32]byte
-	rand.Read(k[:])
+	if _, err := rand.Read(k[:]); err != nil {
+		t.Fatalf("rand.Read: %v", err)
+	}
 	if _, err := Encrypt(k[:], "", "0xdeadbeef"); err == nil {
 		t.Fatal("expected error for empty password, got nil")
 	}
@@ -123,7 +131,9 @@ func TestEncrypt_EmptySecret(t *testing.T) {
 
 func TestDecrypt_CorruptFields(t *testing.T) {
 	var k [32]byte
-	rand.Read(k[:])
+	if _, err := rand.Read(k[:]); err != nil {
+		t.Fatalf("rand.Read: %v", err)
+	}
 	valid, err := Encrypt(k[:], "pw", "0xdeadbeef")
 	if err != nil {
 		t.Fatalf("setup Encrypt failed: %v", err)
