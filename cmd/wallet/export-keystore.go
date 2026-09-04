@@ -1,10 +1,12 @@
 package main
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
 
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/mohsenm4/mini-wallet/internal/hd"
 	"github.com/mohsenm4/mini-wallet/internal/keystore"
 	"github.com/mohsenm4/mini-wallet/internal/mnemonic"
@@ -44,7 +46,13 @@ func runExportKeystore(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("derive %q: %w", path, err)
 	}
 
-	ks, err := keystore.Encrypt(priv.Key, password)
+	ecdsaKey, err := crypto.ToECDSA(priv.Key[:])
+	if err != nil {
+		return fmt.Errorf("to ECDSA: %w", err)
+	}
+	addr := hex.EncodeToString(crypto.PubkeyToAddress(ecdsaKey.PublicKey).Bytes())
+
+	ks, err := keystore.Encrypt(priv.Key[:], password, addr)
 	if err != nil {
 		return fmt.Errorf("encrypt keystore: %w", err)
 	}

@@ -68,7 +68,7 @@ func TestKeystoreV3(t *testing.T) {
 func TestEncrypt_Smoke(t *testing.T) {
 	var k [32]byte
 	rand.Read(k[:])
-	ks, err := Encrypt(k, "pw")
+	ks, err := Encrypt(k[:], "pw", "0xdeadbeef")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,7 +79,7 @@ func TestEncryptDecrypt_Roundtrip(t *testing.T) {
 	var original [32]byte
 	rand.Read(original[:])
 
-	ks, err := Encrypt(original, "correct-password")
+	ks, err := Encrypt(original[:], "correct-password", "0xdeadbeef")
 	if err != nil {
 		t.Fatalf("Encrypt failed: %v", err)
 	}
@@ -89,7 +89,7 @@ func TestEncryptDecrypt_Roundtrip(t *testing.T) {
 		t.Fatalf("Decrypt failed: %v", err)
 	}
 
-	if original != recovered {
+	if !bytes.Equal(original[:], recovered) {
 		t.Fatalf("mismatch: got %x, want %x", recovered, original)
 	}
 }
@@ -98,7 +98,7 @@ func TestDecrypt_WrongPassword(t *testing.T) {
 	var k [32]byte
 	rand.Read(k[:])
 
-	ks, _ := Encrypt(k, "correct")
+	ks, _ := Encrypt(k[:], "correct", "0xdeadbeef")
 	_, err := Decrypt(ks, "WRONG")
 
 	if err == nil {

@@ -41,7 +41,7 @@ func runImportKeystore(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("decrypt keystore: %w", err)
 	}
 
-	ecdsaKey, err := crypto.ToECDSA(privKey[:])
+	ecdsaKey, err := crypto.ToECDSA(privKey)
 	if err != nil {
 		return fmt.Errorf("to ECDSA: %w", err)
 	}
@@ -50,7 +50,7 @@ func runImportKeystore(cmd *cobra.Command, args []string) error {
 	fmt.Println("Address:     ", address)
 
 	if showPrivate {
-		fmt.Println("PrivateKey: ", "0x"+hex.EncodeToString(privKey[:]))
+		fmt.Println("PrivateKey: ", "0x"+hex.EncodeToString(privKey))
 	}
 	return nil
 }

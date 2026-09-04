@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/ethereum/go-ethereum/crypto"
 	"golang.org/x/crypto/scrypt"
 	"golang.org/x/crypto/sha3"
 )
@@ -22,15 +21,6 @@ func newUUIDv4() (string, error) {
 	u[6] = (u[6] & 0x0f) | 0x40
 	u[8] = (u[8] & 0x3f) | 0x80
 	return fmt.Sprintf("%x-%x-%x-%x-%x", u[0:4], u[4:6], u[6:8], u[8:10], u[10:16]), nil
-}
-
-func addressFromPrivKey(privKey [32]byte) (string, error) {
-	ecdsaKey, err := crypto.ToECDSA(privKey[:])
-	if err != nil {
-		return "", err
-	}
-	addr := crypto.PubkeyToAddress(ecdsaKey.PublicKey)
-	return hex.EncodeToString(addr[:]), nil
 }
 
 type KeystoreV3 struct {
@@ -65,7 +55,10 @@ func deriveKey(password string, salt []byte) ([]byte, error) {
 	return scrypt.Key([]byte(password), salt, 1<<18, 8, 1, 32)
 }
 
-func Encrypt(privKey [32]byte, password string) (KeystoreV3, error) {
+func Encrypt(secret []byte, password string, address string) (KeystoreV3, error) {
+	if len(secret) == 0 {
+		return KeystoreV3{}, errors.New("empty secret")
+	}
 
 	salt := make([]byte, 32)
 	if _, err := rand.Read(salt); err != nil {
@@ -90,20 +83,15 @@ func Encrypt(privKey [32]byte, password string) (KeystoreV3, error) {
 		return KeystoreV3{}, err
 	}
 	stream := cipher.NewCTR(block, iv)
-	ciphertext := make([]byte, 32)
-	stream.XORKeyStream(ciphertext, privKey[:])
+	ciphertext := make([]byte, len(secret))
+	stream.XORKeyStream(ciphertext, secret)
 
-	h := sha3.NewLegacyKeccak256() // golang.org/x/crypto/sha3
+	h := sha3.NewLegacyKeccak256()
 	h.Write(macKey)
 	h.Write(ciphertext)
 	mac := h.Sum(nil)
 
 	id, err := newUUIDv4()
-	if err != nil {
-		return KeystoreV3{}, err
-	}
-
-	address, err := addressFromPrivKey(privKey)
 	if err != nil {
 		return KeystoreV3{}, err
 	}
@@ -127,54 +115,54 @@ func Encrypt(privKey [32]byte, password string) (KeystoreV3, error) {
 
 }
 
-func Decrypt(ks KeystoreV3, password string) ([32]byte, error) {
+func Decrypt(ks KeystoreV3, password string) ([]byte, error) {
 
 	salt, err := hex.DecodeString(ks.Crypto.KDFParams.Salt)
 	if err != nil {
-		return [32]byte{}, fmt.Errorf("invalid salt: %w", err)
+		return nil, fmt.Errorf("invalid salt: %w", err)
 	}
 
 	ciphertext, err := hex.DecodeString(ks.Crypto.CipherText)
 	if err != nil {
-		return [32]byte{}, fmt.Errorf("invalid ciphertext: %w", err)
+		return nil, fmt.Errorf("invalid ciphertext: %w", err)
 	}
 
 	iv, err := hex.DecodeString(ks.Crypto.CipherParams.IV)
 	if err != nil {
-		return [32]byte{}, fmt.Errorf("invalid iv: %w", err)
+		return nil, fmt.Errorf("invalid iv: %w", err)
 	}
 
 	expectedMAC, err := hex.DecodeString(ks.Crypto.MAC)
 	if err != nil {
-		return [32]byte{}, fmt.Errorf("invalid mac: %w", err)
+		return nil, fmt.Errorf("invalid mac: %w", err)
 	}
 
 	kp := ks.Crypto.KDFParams
 	derivedKey, err := scrypt.Key([]byte(password), salt, kp.N, kp.R, kp.P, kp.DKLen)
 	if err != nil {
-		return [32]byte{}, err
+		return nil, err
 	}
 
 	encKey := derivedKey[:16]
 	macKey := derivedKey[16:32]
 
 	h := sha3.NewLegacyKeccak256()
-	h.Write(macKey)     // ← macKey
-	h.Write(ciphertext) // ← ciphertext
+	h.Write(macKey)
+	h.Write(ciphertext)
 	computedMAC := h.Sum(nil)
 
 	if subtle.ConstantTimeCompare(computedMAC, expectedMAC) != 1 {
-		return [32]byte{}, errors.New("invalid password (mac mismatch)")
+		return nil, errors.New("invalid password (mac mismatch)")
 	}
 
 	block, err := aes.NewCipher(encKey)
 	if err != nil {
-		return [32]byte{}, err
+		return nil, err
 	}
 	stream := cipher.NewCTR(block, iv)
 
-	var privKey [32]byte
-	stream.XORKeyStream(privKey[:], ciphertext)
+	plaintext := make([]byte, len(ciphertext))
+	stream.XORKeyStream(plaintext, ciphertext)
 
-	return privKey, nil
+	return plaintext, nil
 }
