@@ -30,5 +30,6 @@ Thumbs.db
 *.pem
 *.key
 *.keystore.json
+data/
 
 scratch/
