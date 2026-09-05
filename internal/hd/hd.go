@@ -69,7 +69,7 @@ func (k *PrivateKey) Child(i uint32) (*PrivateKey, error) {
 		return nil, errors.New("invalid child key: left half >= curve order")
 	}
 
-	childKey := new(big.Int).Add(left, pvk.D)
+	childKey := new(big.Int).Add(left, new(big.Int).SetBytes(k.Key[:]))
 	childKey.Mod(childKey, curveN)
 
 	if childKey.Sign() == 0 {
