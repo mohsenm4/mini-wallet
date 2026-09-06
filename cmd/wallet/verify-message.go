@@ -53,7 +53,9 @@ func runVerifyMessage(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("recover signer: %w", err)
 	}
 
-	fmt.Fprintln(cmd.OutOrStdout(), addr.Hex())
+	if _, err := fmt.Fprintln(cmd.OutOrStdout(), addr.Hex()); err != nil {
+		return err
+	}
 
 	if verifyAddress != "" {
 		if !common.IsHexAddress(verifyAddress) {

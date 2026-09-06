@@ -66,7 +66,9 @@ func runSignMessage(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("invalid signature recovery id: %d", sig[64])
 	}
 
-	fmt.Fprintln(cmd.OutOrStdout(), "0x"+hex.EncodeToString(sig))
+	if _, err := fmt.Fprintln(cmd.OutOrStdout(), "0x"+hex.EncodeToString(sig)); err != nil {
+		return err
+	}
 
 	return nil
 }
