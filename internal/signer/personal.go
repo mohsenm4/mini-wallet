@@ -26,8 +26,21 @@ func SignPersonal(privKey *ecdsa.PrivateKey, message []byte) ([]byte, error) {
 }
 
 func RecoverPersonal(message, sig []byte) (common.Address, error) {
+	if len(sig) != 65 {
+		return common.Address{}, fmt.Errorf("invalid signature length: got %d bytes, want 65", len(sig))
+	}
+
+	// Wallets (MetaMask, ethers) emit v as 27/28 per EIP-191, but go-ethereum's
+	// SigToPub expects 0/1. Accept either without mutating the caller's slice.
+	normalised := sig
+	if v := sig[64]; v == 27 || v == 28 {
+		normalised = make([]byte, 65)
+		copy(normalised, sig)
+		normalised[64] = v - 27
+	}
+
 	hash := hashPersonalMessage(message)
-	pubKey, err := crypto.SigToPub(hash.Bytes(), sig)
+	pubKey, err := crypto.SigToPub(hash.Bytes(), normalised)
 	if err != nil {
 		return common.Address{}, err
 	}

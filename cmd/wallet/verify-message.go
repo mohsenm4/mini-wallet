@@ -48,12 +48,6 @@ func runVerifyMessage(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("invalid signature length: got %d bytes, want 65", len(sig))
 	}
 
-	// sign-message emits v as 27/28 (wallet convention); go-ethereum's recover
-	// expects 0/1, so undo the normalisation before passing it down.
-	if sig[64] == 27 || sig[64] == 28 {
-		sig[64] -= 27
-	}
-
 	addr, err := signer.RecoverPersonal(msg, sig)
 	if err != nil {
 		return fmt.Errorf("recover signer: %w", err)
