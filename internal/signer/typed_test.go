@@ -75,6 +75,21 @@ func TestHashStruct_Mail(t *testing.T) {
 	}
 }
 
+func TestHashDomain_Mail(t *testing.T) {
+	td := mailExample()
+
+	got, err := HashDomain(td.Domain)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	want := "f2cee375fa42b42143804025fc449deafd50cc031ca257e0b194a650a912090f"
+
+	if common.Bytes2Hex(got) != want {
+		t.Fatalf("HashDomain() = 0x%s, want 0x%s", common.Bytes2Hex(got), want)
+	}
+}
+
 func TestSignRecoverTyped_RoundTrip(t *testing.T) {
 	td := mailExample()
 

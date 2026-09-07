@@ -6,6 +6,7 @@ import (
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 type Field struct {
@@ -56,21 +57,117 @@ func encodeTypeRec(primaryType string, types map[string][]Field, seen map[string
 }
 
 func TypeHash(primaryType string, types map[string][]Field) []byte {
-	panic("todo")
+	encodedType := EncodeType(primaryType, types)
+	return crypto.Keccak256([]byte(encodedType))
 }
 
 func HashStruct(primaryType string, data map[string]any, types map[string][]Field) ([]byte, error) {
-	panic("todo")
+	hashtype := TypeHash(primaryType, types)
+	encodedData := []byte{}
+	for _, field := range types[primaryType] {
+		value, ok := data[field.Name]
+		if !ok {
+			return nil, fmt.Errorf("missing value for field %s", field.Name)
+		}
+
+		var encodedValue []byte
+		switch field.Type {
+		case "string":
+			str, ok := value.(string)
+			if !ok {
+				return nil, fmt.Errorf("field %s must be string", field.Name)
+			}
+			encodedValue = crypto.Keccak256([]byte(str))
+		case "uint256":
+			bigIntValue, ok := value.(*big.Int)
+			if !ok {
+				return nil, fmt.Errorf("field %s must be *big.Int", field.Name)
+			}
+			encodedValue = common.LeftPadBytes(bigIntValue.Bytes(), 32)
+		case "address":
+			var addr common.Address
+			switch v := value.(type) {
+			case common.Address:
+				addr = v
+			case string:
+				addr = common.HexToAddress(v)
+			default:
+				return nil, fmt.Errorf("field %s must be address string or common.Address", field.Name)
+			}
+			encodedValue = common.LeftPadBytes(addr.Bytes(), 32)
+		default:
+			if _, ok := types[field.Type]; ok {
+				nestedHash, err := HashStruct(field.Type, value.(map[string]any), types)
+				if err != nil {
+					return nil, err
+				}
+				encodedValue = nestedHash
+			} else {
+				return nil, fmt.Errorf("unsupported type: %s", field.Type)
+			}
+		}
+		encodedData = append(encodedData, encodedValue...)
+	}
+
+	finalData := append(hashtype, encodedData...)
+	return crypto.Keccak256(finalData), nil
 }
 
 func HashDomain(d TypedDataDomain) ([]byte, error) {
-	panic("todo")
+	data := map[string]any{
+		"name":              d.Name,
+		"version":           d.Version,
+		"chainId":           d.ChainID,
+		"verifyingContract": d.VerifyingContract,
+	}
+	types := map[string][]Field{
+		"EIP712Domain": {
+			{"name", "string"},
+			{"version", "string"},
+			{"chainId", "uint256"},
+			{"verifyingContract", "address"},
+		},
+	}
+	return HashStruct("EIP712Domain", data, types)
 }
 
 func SignTyped(priv *ecdsa.PrivateKey, td TypedData) ([]byte, error) {
-	panic("todo")
+	domainHash, err := HashDomain(td.Domain)
+	if err != nil {
+		return nil, err
+	}
+
+	messageHash, err := HashStruct(td.PrimaryType, td.Message, td.Types)
+	if err != nil {
+		return nil, err
+	}
+
+	data := append([]byte("\x19\x01"), domainHash...)
+	data = append(data, messageHash...)
+
+	return crypto.Sign(crypto.Keccak256(data), priv)
+
 }
 
 func RecoverTyped(td TypedData, sig []byte) (common.Address, error) {
-	panic("todo")
+
+	domainHash, err := HashDomain(td.Domain)
+	if err != nil {
+		return common.Address{}, err
+	}
+
+	messageHash, err := HashStruct(td.PrimaryType, td.Message, td.Types)
+	if err != nil {
+		return common.Address{}, err
+	}
+
+	data := append([]byte("\x19\x01"), domainHash...)
+	data = append(data, messageHash...)
+
+	pubKey, err := crypto.SigToPub(crypto.Keccak256(data), sig)
+	if err != nil {
+		return common.Address{}, err
+	}
+	return crypto.PubkeyToAddress(*pubKey), nil
+
 }
