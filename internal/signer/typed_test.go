@@ -71,7 +71,7 @@ func TestHashStruct_Mail(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	want := "c52c0ee5b371e2e7f7f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6"
+	want := "c52c0ee5d84264471806290a3f2c4cecfc5490626bf912d01f240d7a274b371e"
 
 	if common.Bytes2Hex(got) != want {
 		t.Fatalf("HashStruct() = 0x%s, want 0x%s", common.Bytes2Hex(got), want)
