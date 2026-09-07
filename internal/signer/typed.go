@@ -2,6 +2,7 @@ package signer
 
 import (
 	"crypto/ecdsa"
+	"fmt"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -27,7 +28,31 @@ type TypedData struct {
 }
 
 func EncodeType(primaryType string, types map[string][]Field) string {
-	panic("todo")
+	seen := map[string]bool{primaryType: true}
+	return encodeTypeRec(primaryType, types, seen)
+}
+
+func encodeTypeRec(primaryType string, types map[string][]Field, seen map[string]bool) string {
+	fields := types[primaryType]
+
+	encodedFields := ""
+	for _, field := range fields {
+		encodedFields += fmt.Sprintf("%s %s,", field.Type, field.Name)
+	}
+	if len(encodedFields) > 0 {
+		encodedFields = encodedFields[:len(encodedFields)-1]
+	}
+
+	result := fmt.Sprintf("%s(%s)", primaryType, encodedFields)
+
+	for _, field := range fields {
+		if _, ok := types[field.Type]; ok && !seen[field.Type] {
+			seen[field.Type] = true
+			result += encodeTypeRec(field.Type, types, seen)
+		}
+	}
+
+	return result
 }
 
 func TypeHash(primaryType string, types map[string][]Field) []byte {

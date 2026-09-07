@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 )
 
 func mailExample() TypedData {
@@ -48,8 +49,6 @@ func mailExample() TypedData {
 }
 
 func TestEncodeType_MailExample(t *testing.T) {
-	t.Skip("todo: implement in week-08 tuesday")
-
 	td := mailExample()
 
 	got := EncodeType(td.PrimaryType, td.Types)
@@ -62,8 +61,6 @@ func TestEncodeType_MailExample(t *testing.T) {
 }
 
 func TestHashStruct_Mail(t *testing.T) {
-	t.Skip("todo: implement in week-08 tuesday")
-
 	td := mailExample()
 
 	got, err := HashStruct(td.PrimaryType, td.Message, td.Types)
@@ -79,11 +76,26 @@ func TestHashStruct_Mail(t *testing.T) {
 }
 
 func TestSignRecoverTyped_RoundTrip(t *testing.T) {
-	t.Skip("todo: implement in week-08 tuesday")
+	td := mailExample()
 
-	// TODO:
-	// 1. generate/load a private key
-	// 2. SignTyped(priv, td)
-	// 3. RecoverTyped(td, sig)
-	// 4. compare recovered address with the private-key address
+	priv, err := crypto.GenerateKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sig, err := SignTyped(priv, td)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	recovered, err := RecoverTyped(td, sig)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expected := crypto.PubkeyToAddress(priv.PublicKey)
+
+	if recovered != expected {
+		t.Fatalf("address mismatch: got %s, want %s", recovered.Hex(), expected.Hex())
+	}
 }
