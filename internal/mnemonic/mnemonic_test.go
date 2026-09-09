@@ -132,3 +132,49 @@ func TestToSeed(t *testing.T) {
 		t.Errorf("ToSeed returned unexpected result:\ngot:  %s\nwant: %s", seedHex, expectedSeedHex)
 	}
 }
+
+func TestNewEntropy_Lengths(t *testing.T) {
+	validLengths := []int{128, 160, 192, 224, 256}
+	for _, bits := range validLengths {
+		entropy, err := NewEntropy(bits)
+		if err != nil {
+			t.Fatalf("NewEntropy(%d) returned error: %v", bits, err)
+		}
+		if len(entropy) != bits/8 {
+			t.Errorf("NewEntropy(%d) returned %d bytes, want %d", bits, len(entropy), bits/8)
+		}
+	}
+
+	invalidLengths := []int{0, 64, 100, 129, 512}
+	for _, bits := range invalidLengths {
+		if _, err := NewEntropy(bits); err == nil {
+			t.Errorf("NewEntropy(%d) expected error for invalid length, got nil", bits)
+		}
+	}
+}
+
+func TestNewEntropy_InvalidBits(t *testing.T) {
+	invalidBits := []int{0, 64, 100, 129, 512}
+	for _, bits := range invalidBits {
+		if _, err := NewEntropy(bits); err == nil {
+			t.Errorf("NewEntropy(%d) expected error for invalid length, got nil", bits)
+		}
+	}
+}
+
+func TestNewEntropy_NotAllZeros(t *testing.T) {
+	entropy, err := NewEntropy(128)
+	if err != nil {
+		t.Fatalf("NewEntropy returned error: %v", err)
+	}
+	allZeros := true
+	for _, b := range entropy {
+		if b != 0 {
+			allZeros = false
+			break
+		}
+	}
+	if allZeros {
+		t.Error("NewEntropy returned all zeros, expected random bytes")
+	}
+}

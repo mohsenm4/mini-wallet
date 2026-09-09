@@ -58,17 +58,27 @@ func FromEntropy(entropy []byte) (string, error) {
 
 func NewMnemonic(bits int) (string, error) {
 
+	entropy, err := NewEntropy(bits)
+	if err != nil {
+		return "", err
+	}
+
+	return FromEntropy(entropy)
+}
+
+func NewEntropy(bits int) ([]byte, error) {
 	if !validEntropyBits[bits] {
-		return "", fmt.Errorf("invalid entropy length: %d bits", bits)
+		return nil, fmt.Errorf("invalid entropy length: %d bits", bits)
 	}
 
 	entropy := make([]byte, bits/8)
 	_, err := rand.Read(entropy)
 	if err != nil {
-		return "", fmt.Errorf("failed to generate random entropy: %v", err)
+		return nil, fmt.Errorf("failed to generate random entropy: %v", err)
 	}
 
-	return FromEntropy(entropy)
+	return entropy, nil
+
 }
 
 func ValidateMnemonic(m string) error {
