@@ -2,6 +2,7 @@ package signer
 
 import (
 	"math/big"
+	"strings"
 	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -87,6 +88,72 @@ func TestHashDomain_Mail(t *testing.T) {
 
 	if common.Bytes2Hex(got) != want {
 		t.Fatalf("HashDomain() = 0x%s, want 0x%s", common.Bytes2Hex(got), want)
+	}
+}
+
+func TestHashStruct_MissingField(t *testing.T) {
+	td := mailExample()
+	delete(td.Message, "contents")
+
+	_, err := HashStruct(td.PrimaryType, td.Message, td.Types)
+	if err == nil {
+		t.Fatal("expected error for missing field, got nil")
+	}
+	if !strings.Contains(err.Error(), "missing value for field contents") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestHashStruct_NestedFieldWrongType(t *testing.T) {
+	td := mailExample()
+	td.Message["from"] = "not a struct"
+
+	_, err := HashStruct(td.PrimaryType, td.Message, td.Types)
+	if err == nil {
+		t.Fatal("expected error for wrong nested type, got nil")
+	}
+	if !strings.Contains(err.Error(), "must be a nested struct") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestRecoverTyped_InvalidSigLength(t *testing.T) {
+	td := mailExample()
+
+	for _, sig := range [][]byte{
+		make([]byte, 0),
+		make([]byte, 64),
+		make([]byte, 100),
+	} {
+		if _, err := RecoverTyped(td, sig); err == nil {
+			t.Fatalf("expected error for sig length %d, got nil", len(sig))
+		}
+	}
+}
+
+func TestRecoverTyped_DifferentDomainRecoversDifferentAddress(t *testing.T) {
+	td := mailExample()
+
+	priv, err := crypto.GenerateKey()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sig, err := SignTyped(priv, td)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tampered := td
+	tampered.Domain.ChainID = big.NewInt(999)
+
+	recovered, err := RecoverTyped(tampered, sig)
+	if err != nil {
+		t.Fatal(err)
+	}
+	signer := crypto.PubkeyToAddress(priv.PublicKey)
+	if recovered == signer {
+		t.Fatal("expected different address when recovering with tampered domain, got signer")
 	}
 }
 

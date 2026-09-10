@@ -97,7 +97,11 @@ func HashStruct(primaryType string, data map[string]any, types map[string][]Fiel
 			encodedValue = common.LeftPadBytes(addr.Bytes(), 32)
 		default:
 			if _, ok := types[field.Type]; ok {
-				nestedHash, err := HashStruct(field.Type, value.(map[string]any), types)
+				nested, ok := value.(map[string]any)
+				if !ok {
+					return nil, fmt.Errorf("field %s must be a nested struct (map[string]any), got %T", field.Name, value)
+				}
+				nestedHash, err := HashStruct(field.Type, nested, types)
 				if err != nil {
 					return nil, err
 				}
