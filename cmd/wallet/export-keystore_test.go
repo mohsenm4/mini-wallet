@@ -7,8 +7,6 @@ import (
 	"testing"
 )
 
-var readPasswordFn = readPassword
-
 func TestExportKeystore_ToStdout(t *testing.T) {
 	t.Setenv(
 		"WALLET_MNEMONIC",
