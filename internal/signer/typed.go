@@ -2,8 +2,10 @@ package signer
 
 import (
 	"crypto/ecdsa"
+	"encoding/json"
 	"fmt"
 	"math/big"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -79,11 +81,20 @@ func HashStruct(primaryType string, data map[string]any, types map[string][]Fiel
 			}
 			encodedValue = crypto.Keccak256([]byte(str))
 		case "uint256":
-			bigIntValue, ok := value.(*big.Int)
-			if !ok {
-				return nil, fmt.Errorf("field %s must be *big.Int", field.Name)
+			var n *big.Int
+			switch v := value.(type) {
+			case *big.Int:
+				n = v
+			case json.Number:
+				n, _ = new(big.Int).SetString(v.String(), 10)
+			case string:
+				n, _ = new(big.Int).SetString(strings.TrimPrefix(v, "0x"), 16) // dApp ها hex می‌فرستن
 			}
-			encodedValue = common.LeftPadBytes(bigIntValue.Bytes(), 32)
+			if n == nil || n.Sign() < 0 || n.BitLen() > 256 {
+				return nil, fmt.Errorf("field %s: invalid uint256 %v", field.Name, value)
+			}
+			encodedValue = common.LeftPadBytes(n.Bytes(), 32)
+
 		case "address":
 			var addr common.Address
 			switch v := value.(type) {

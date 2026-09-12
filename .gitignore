@@ -33,3 +33,8 @@ Thumbs.db
 data/
 
 scratch/
+
+# Local-only
+.claude/
+c/
+career-plan/
