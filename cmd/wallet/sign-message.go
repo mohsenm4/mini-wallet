@@ -30,10 +30,6 @@ func init() {
 }
 
 func runSignMessage(cmd *cobra.Command, args []string) error {
-	msg, err := parseMessage(args[0], signMsgHex)
-	if err != nil {
-		return err
-	}
 
 	keyHex := os.Getenv("WALLET_PRIVATE_KEY")
 	if keyHex == "" {
@@ -48,9 +44,24 @@ func runSignMessage(cmd *cobra.Command, args []string) error {
 	var sig []byte
 	switch signMsgType {
 	case "personal":
-		sig, err = signer.SignPersonal(privateKey, msg)
+		msg, err := parseMessage(args[0], signMsgHex)
 		if err != nil {
+			return err
+		}
+		if sig, err = signer.SignPersonal(privateKey, msg); err != nil {
 			return fmt.Errorf("sign personal message: %w", err)
+		}
+	case "typed":
+		raw, err := os.ReadFile(args[0])
+		if err != nil {
+			return fmt.Errorf("read typed data file: %w", err)
+		}
+		td, err := signer.ParseTypedDataJSON(raw)
+		if err != nil {
+			return fmt.Errorf("parse typed data: %w", err)
+		}
+		if sig, err = signer.SignTyped(privateKey, td); err != nil {
+			return fmt.Errorf("sign typed data: %w", err)
 		}
 	default:
 		return fmt.Errorf("unsupported --type %q", signMsgType)

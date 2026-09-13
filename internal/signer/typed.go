@@ -179,10 +179,23 @@ func RecoverTyped(td TypedData, sig []byte) (common.Address, error) {
 	data := append([]byte("\x19\x01"), domainHash...)
 	data = append(data, messageHash...)
 
-	pubKey, err := crypto.SigToPub(crypto.Keccak256(data), sig)
+	pubKey, err := crypto.SigToPub(crypto.Keccak256(data), normaliseV(sig))
 	if err != nil {
 		return common.Address{}, err
 	}
 	return crypto.PubkeyToAddress(*pubKey), nil
 
+}
+
+func normaliseV(sig []byte) []byte {
+	if len(sig) != 65 {
+		return sig // let the caller's length check report the error
+	}
+	if v := sig[64]; v == 27 || v == 28 {
+		out := make([]byte, 65)
+		copy(out, sig)
+		out[64] = v - 27
+		return out
+	}
+	return sig
 }

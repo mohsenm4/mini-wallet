@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/hex"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -31,15 +32,6 @@ func init() {
 }
 
 func runVerifyMessage(cmd *cobra.Command, args []string) error {
-	if verifyMsgType != "personal" {
-		return fmt.Errorf("unsupported --type %q", verifyMsgType)
-	}
-
-	msg, err := parseMessage(args[0], verifyMsgHex)
-	if err != nil {
-		return err
-	}
-
 	sig, err := hex.DecodeString(strings.TrimPrefix(args[1], "0x"))
 	if err != nil {
 		return fmt.Errorf("invalid signature hex: %w", err)
@@ -48,9 +40,30 @@ func runVerifyMessage(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("invalid signature length: got %d bytes, want 65", len(sig))
 	}
 
-	addr, err := signer.RecoverPersonal(msg, sig)
-	if err != nil {
-		return fmt.Errorf("recover signer: %w", err)
+	var addr common.Address
+	switch verifyMsgType {
+	case "personal":
+		msg, err := parseMessage(args[0], verifyMsgHex)
+		if err != nil {
+			return err
+		}
+		if addr, err = signer.RecoverPersonal(msg, sig); err != nil {
+			return fmt.Errorf("recover signer: %w", err)
+		}
+	case "typed":
+		raw, err := os.ReadFile(args[0])
+		if err != nil {
+			return fmt.Errorf("read typed data file: %w", err)
+		}
+		td, err := signer.ParseTypedDataJSON(raw)
+		if err != nil {
+			return fmt.Errorf("parse typed data: %w", err)
+		}
+		if addr, err = signer.RecoverTyped(td, sig); err != nil {
+			return fmt.Errorf("recover typed signer: %w", err)
+		}
+	default:
+		return fmt.Errorf("unsupported --type %q", verifyMsgType)
 	}
 
 	if _, err := fmt.Fprintln(cmd.OutOrStdout(), addr.Hex()); err != nil {

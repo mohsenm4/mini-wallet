@@ -157,6 +157,29 @@ func TestRecoverTyped_DifferentDomainRecoversDifferentAddress(t *testing.T) {
 	}
 }
 
+func TestRecoverTyped_AcceptsBothVFormats(t *testing.T) {
+	priv, _ := crypto.GenerateKey()
+	td := mailExample()
+	sig, err := SignTyped(priv, td)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	sig27 := append([]byte(nil), sig...)
+	sig27[64] += 27
+
+	want := crypto.PubkeyToAddress(priv.PublicKey)
+	for _, s := range [][]byte{sig, sig27} {
+		got, err := RecoverTyped(td, s)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got != want {
+			t.Fatalf("got %s want %s", got.Hex(), want.Hex())
+		}
+	}
+}
+
 func TestSignRecoverTyped_RoundTrip(t *testing.T) {
 	td := mailExample()
 
