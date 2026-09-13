@@ -120,6 +120,9 @@ in [internal/keystore/keystore_test.go](internal/keystore/keystore_test.go).
 
 - [docs/design/mnemonic-storage.md](docs/design/mnemonic-storage.md) — encrypted persistence of BIP39 entropy
 
+- [Ethereum cryptography from a Go dev's view](https://dev.to/mohsenm4/ethereum-cryptography-from-a-go-devs-view-47h8) — blog post: BIP39/32/44, keystore V3, EIP-191/712, and three bugs the tests caught
+
+
 ## License
 
 MIT
