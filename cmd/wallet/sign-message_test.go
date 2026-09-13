@@ -54,6 +54,35 @@ func TestSignMessageCmd_BadHexMessage(t *testing.T) {
 	}
 }
 
+func TestSignVerifyTypedRoundTrip(t *testing.T) {
+	t.Setenv("WALLET_PRIVATE_KEY", "4c0883a69102937d6231471b5dbb6204fe5129617082792ae468d01a3f362318")
+	file := "../../internal/signer/testdata/mail.json"
+
+	var out bytes.Buffer
+	rootCmd.SetOut(&out)
+	rootCmd.SetArgs([]string{"sign-message", "--type=typed", file})
+	if err := rootCmd.Execute(); err != nil {
+		t.Fatalf("sign: %v", err)
+	}
+	sig := strings.TrimSpace(out.String())
+
+	out.Reset()
+	rootCmd.SetArgs([]string{"verify-message", "--type=typed", file, sig,
+		"--address", "0x2c7536E3605D9C16a7a3D7b1898e529396a65c23"})
+	if err := rootCmd.Execute(); err != nil {
+		t.Fatalf("verify: %v", err)
+	}
+}
+
+func TestSignTyped_MissingFile(t *testing.T) {
+	t.Setenv("WALLET_PRIVATE_KEY", "4c0883a69102937d6231471b5dbb6204fe5129617082792ae468d01a3f362318")
+	rootCmd.SetArgs([]string{"sign-message", "--type=typed", "does-not-exist.json"})
+	err := rootCmd.Execute()
+	if err == nil || !strings.Contains(err.Error(), "read typed data file") {
+		t.Fatalf("expected read error, got %v", err)
+	}
+}
+
 func TestSignMessageCmd_OutputShape(t *testing.T) {
 	t.Setenv("WALLET_PRIVATE_KEY", newTestKeyHex(t))
 	signMsgType = "personal"
