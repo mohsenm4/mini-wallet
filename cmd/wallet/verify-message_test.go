@@ -101,3 +101,29 @@ func TestVerifyMessageCmd_AddressMismatch(t *testing.T) {
 		t.Fatal("expected address mismatch error, got nil")
 	}
 }
+
+func TestSignVerifyTypedRoundTrip(t *testing.T) {
+	t.Setenv("WALLET_PRIVATE_KEY", "4c0883a69102937d6231471b5dbb6204fe5129617082792ae468d01a3f362318")
+	file := "../../internal/signer/testdata/mail.json"
+
+	signMsgType, signMsgHex = "typed", false
+	sig, err := runSignMessageCmd(t, []string{file})
+	if err != nil {
+		t.Fatalf("sign: %v", err)
+	}
+
+	verifyMsgType, verifyMsgHex = "typed", false
+	verifyAddress = "0x2c7536E3605D9C16a7a3D7b1898e529396a65c23"
+	if _, err := runVerifyMessageCmd(t, []string{file, sig}); err != nil {
+		t.Fatalf("verify: %v", err)
+	}
+}
+
+func TestSignMessageCmd_TypedMissingFile(t *testing.T) {
+	t.Setenv("WALLET_PRIVATE_KEY", newTestKeyHex(t))
+	signMsgType, signMsgHex = "typed", false
+	_, err := runSignMessageCmd(t, []string{"does-not-exist.json"})
+	if err == nil || !strings.Contains(err.Error(), "read typed data file") {
+		t.Fatalf("expected read error, got %v", err)
+	}
+}
