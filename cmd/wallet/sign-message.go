@@ -24,7 +24,7 @@ var signMessageCmd = &cobra.Command{
 }
 
 func init() {
-	signMessageCmd.Flags().StringVar(&signMsgType, "type", "personal", "signing scheme: personal")
+	signMessageCmd.Flags().StringVar(&signMsgType, "type", "personal", "signing scheme: personal | typed")
 	signMessageCmd.Flags().BoolVar(&signMsgHex, "hex", false, "treat <message> as hex-encoded bytes")
 	rootCmd.AddCommand(signMessageCmd)
 }

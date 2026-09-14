@@ -25,7 +25,7 @@ var verifyMessageCmd = &cobra.Command{
 }
 
 func init() {
-	verifyMessageCmd.Flags().StringVar(&verifyMsgType, "type", "personal", "signing scheme: personal")
+	verifyMessageCmd.Flags().StringVar(&verifyMsgType, "type", "personal", "signing scheme: personal | typed")
 	verifyMessageCmd.Flags().BoolVar(&verifyMsgHex, "hex", false, "treat <message> as hex-encoded bytes")
 	verifyMessageCmd.Flags().StringVar(&verifyAddress, "address", "", "expected signer address")
 	rootCmd.AddCommand(verifyMessageCmd)

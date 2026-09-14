@@ -57,7 +57,9 @@ func runImportKeystore(cmd *cobra.Command, args []string) error {
 
 var importKeystoreCmd = &cobra.Command{
 	Use:   "import-keystore FILE",
-	Short: "Import a keystore JSON file and print the Ethereum address (add --show-private to reveal the private key)",
-	Args:  cobra.ExactArgs(1),
-	RunE:  runImportKeystore,
+	Short: "Import a keystore JSON file and print its address",
+	Long: `Decrypt a V3 keystore JSON file with the password and print the
+Ethereum address. Add --show-private to also print the private key.`,
+	Args: cobra.ExactArgs(1),
+	RunE: runImportKeystore,
 }
