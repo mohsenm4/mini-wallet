@@ -48,7 +48,11 @@ var verifyCmd = &cobra.Command{
 	Use:   "verify <hex-sig> <hex-hash>",
 	Short: "Recover the Ethereum address from a signature and hash",
 	Long: `Recover the Ethereum address from a 65-byte signature and 32-byte
-hash using ECDSA public key recovery (Ecrecover).`,
+hash using ECDSA public key recovery (Ecrecover).
+
+This expects a signature over a raw hash. For signatures made with
+"sign-message", use "verify-message" instead.`,
+
 	Args: cobra.ExactArgs(2),
 	RunE: runVerify,
 }

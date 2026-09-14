@@ -48,7 +48,11 @@ var signCmd = &cobra.Command{
 	Short: "Sign a 32-byte hex hash with the WALLET_PRIVATE_KEY",
 	Long: `Sign a 32-byte hex hash using the private key from the
 WALLET_PRIVATE_KEY environment variable. Prints the 65-byte signature
-(r || s || v) as hex.`,
+(r || s || v) as hex.
+
+This signs a raw hash with no prefix. To sign a human-readable message
+(EIP-191 personal_sign) or typed data (EIP-712), use "sign-message".`,
+
 	Args: cobra.ExactArgs(1),
 	RunE: runSign,
 }
